@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="si">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<style>:root{color-scheme:light}body{margin:0;font-size:14px}</style>
+<title>5AM Club Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600&family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow column. A dawn-sky hero whose sun travels along the horizon as the 66 days pass, then today's checklist, streaks, the 66-day grid, and the wake-time schedule. */
+:root{
+  --bg:#EEF1F8;
+  --surface:#FFFFFF;
+  --ink:#171A3F;
+  --muted:#586088;
+  --line:#D7DDEE;
+  --deep:#2A2D6B;
+  --on-deep:#FFFFFF;
+  --accent:#F2A03D;
+  --accent-ink:#1F1640;
+  --sky:#23265E;
+  --sky-ink:#FFFFFF;
+  --sky-muted:#C4C9F0;
+  --ground:#171947;
+  --soft:#F4F6FC;
+  --font-display:"Bricolage Grotesque","Noto Sans Sinhala",system-ui,sans-serif;
+  --font-body:"Figtree","Noto Sans Sinhala",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0F2E;
+    --surface:#171944;
+    --ink:#ECEEFB;
+    --muted:#A0A6D2;
+    --line:#2B2E65;
+    --deep:#AEB3FF;
+    --on-deep:#0E0F2E;
+    --accent:#F5B056;
+    --accent-ink:#1F1640;
+    --sky:#1B1D52;
+    --sky-ink:#FFFFFF;
+    --sky-muted:#B5BAEA;
+    --ground:#0E0F2E;
+    --soft:#1D2050;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0F2E;
+  --surface:#171944;
+  --ink:#ECEEFB;
+  --muted:#A0A6D2;
+  --line:#2B2E65;
+  --deep:#AEB3FF;
+  --on-deep:#0E0F2E;
+  --accent:#F5B056;
+  --accent-ink:#1F1640;
+  --sky:#1B1D52;
+  --sky-ink:#FFFFFF;
+  --sky-muted:#B5BAEA;
+  --ground:#0E0F2E;
+  --soft:#1D2050;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.6;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.25}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* hero */
+.hero{background:var(--sky);color:var(--sky-ink);border-radius:20px;overflow:hidden}
+.hero-body{padding:22px 22px 0}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sky-muted);font-weight:600}
+.hero h1{font-size:clamp(34px,9vw,52px);font-weight:700;margin-top:6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hero h1 small{font-size:.42em;font-weight:600;color:var(--sky-muted)}
+.phase{margin-top:8px;display:flex;flex-direction:column;gap:2px}
+.phase b{font-weight:600}
+.phase span{color:var(--sky-muted);font-size:14px}
+.horizon{position:relative;height:62px;margin-top:14px;overflow:hidden;background:linear-gradient(180deg,transparent 0,transparent 100%)}
+.sun{position:absolute;bottom:-30px;width:92px;height:92px;border-radius:50%;left:calc(var(--p,0) * (100% - 92px));background:radial-gradient(circle at 50% 35%,#FFE0A3,#F7B04A 55%,#E4741F);box-shadow:0 0 48px 10px rgba(247,176,74,.45);transition:left .6s ease}
+.ground{position:absolute;left:0;right:0;bottom:0;height:20px;background:var(--ground)}
+@media (prefers-reduced-motion:reduce){.sun{transition:none}}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card-head h2{font-size:20px}
+.sub{color:var(--muted);font-size:13px}
+.nav{display:flex;gap:6px}
+.btn{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:6px 12px;font-weight:500}
+.btn:disabled{opacity:.4;cursor:default}
+.btn-primary{background:var(--deep);color:var(--on-deep);border-color:var(--deep);font-weight:600;padding:10px 18px;border-radius:12px}
+.btn-danger{border-color:#C0453B;color:#C0453B}
+:root[data-theme="dark"] .btn-danger{border-color:#FF8A80;color:#FF8A80}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn-danger{border-color:#FF8A80;color:#FF8A80}}
+
+.times{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.time{background:var(--soft);border-radius:12px;padding:12px 14px;min-width:0}
+.time .k{font-size:12px;color:var(--muted)}
+.time .v{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1.2;margin-top:2px}
+.session{margin-top:12px;color:var(--muted);font-size:14px}
+.session b{color:var(--ink);font-weight:600}
+
+.checks{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.check{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--soft);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.check .box{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--muted);display:grid;place-items:center}
+.check .box svg{width:16px;height:16px;opacity:0}
+.check .txt{min-width:0;flex:1}
+.check .t{font-weight:600;overflow-wrap:anywhere}
+.check .d{font-size:13px;color:var(--muted)}
+.check[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+.check[aria-checked="true"] .box{background:var(--accent);border-color:var(--accent)}
+.check[aria-checked="true"] .box svg{opacity:1;stroke:var(--accent-ink)}
+.check:disabled{opacity:.55;cursor:default}
+.note{margin-top:12px;font-size:13px;color:var(--muted)}
+
+.startbox{margin-top:14px;padding:14px;border-radius:12px;background:var(--soft);display:flex;flex-direction:column;gap:10px}
+.startbox label{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=date],textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;max-width:100%}
+textarea{width:100%;min-height:76px;resize:vertical}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.stat{padding:14px 12px;text-align:center;min-width:0}
+.stat+.stat{border-left:1px solid var(--line)}
+.stat .v{font-family:var(--font-display);font-size:30px;font-weight:700;line-height:1.1}
+.stat .k{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* grid */
+.phase-block+.phase-block{margin-top:16px}
+.phase-label{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:600;margin-bottom:8px}
+.phase-label span{color:var(--muted);font-weight:400}
+.cells{display:grid;grid-template-columns:repeat(11,1fr);gap:5px}
+.cell{aspect-ratio:1;min-width:0;padding:0;border-radius:8px;border:1.5px solid var(--line);background:var(--soft);font-size:11px;font-weight:600;color:var(--muted);display:grid;place-items:center;position:relative}
+.cell.full{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cell.part{background:linear-gradient(135deg,var(--accent) 0 50%,var(--soft) 50% 100%);border-color:var(--accent);color:var(--ink)}
+.cell.miss{border-style:dashed}
+.cell.future{opacity:.5}
+.cell.today{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--deep)}
+.cell.sel{outline:3px solid var(--deep);outline-offset:1px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-1px;margin-right:5px;border:1.5px solid var(--accent)}
+
+/* table */
+.scroll{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:380px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600}
+tr.now td{background:color-mix(in srgb,var(--accent) 22%,var(--surface));font-weight:600}
+
+details summary{cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:18px}
+.settings{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.status{font-size:12px;color:var(--muted);text-align:center}
+.tag{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <section class="hero" id="hero" aria-live="polite"></section>
+  <section class="card" id="today"></section>
+  <section class="stats" id="stats"></section>
+  <section class="card">
+    <div class="card-head"><h2>දින 66 ගමන</h2><span class="sub">දවසක් තෝරන්න</span></div>
+    <div id="grid" style="margin-top:14px"></div>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>සියල්ල සම්පූර්ණයි</span>
+      <span><i style="background:linear-gradient(135deg,var(--accent) 50%,transparent 50%)"></i>කොටසක් පමණයි</span>
+      <span><i style="border-style:dashed;border-color:var(--muted)"></i>මග හැරුණා</span>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>නැගිටින වෙලාවන්</h2><span class="sub">පැය 7 නින්ද</span></div>
+    <div class="scroll"><table id="table"></table></div>
+  </section>
+  <section class="card">
+    <h2 style="font-size:20px">මගේ "ඇයි?"</h2>
+    <p class="sub" style="margin:4px 0 10px">උදේ අමාරු වෙලාවට මේක කියවන්න.</p>
+    <textarea id="why" placeholder="මම උදේ 5ට නැගිටින්නේ ... නිසා."></textarea>
+  </section>
+  <section class="card">
+    <details>
+      <summary>සැකසුම්</summary>
+      <div class="settings" id="settings"></div>
+    </details>
+  </section>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+(function(){
+  var TOTAL = 66;
+  var LS = "fiveam-tracker-v1";
+  var S = { start: null, days: {}, why: "" };
+  var sel = null;
+  var confirmReset = false;
+
+  var PHASES = [
+    { name: "විනාශය", en: "Destruction", range: "දවස් 1–22", hint: "අමාරුම කාලය. හැඟීම්වලට නෙවෙයි, plan එකට අවනත වෙන්න." },
+    { name: "ස්ථාපනය", en: "Installation", range: "දවස් 23–44", hint: "පුරුද්ද ඇතුල් වෙනවා. තවමත් වෙහෙසකරයි, ඒත් පහසු වෙනවා." },
+    { name: "ඒකාබද්ධ කිරීම", en: "Integration", range: "දවස් 45–66", hint: "ස්වයංක්‍රීය වෙනවා. ඔයා දැන් 5 AM Club කෙනෙක්." }
+  ];
+  var ITEMS = [
+    { key: "lights", title: function(d){ return "ඊයේ රෑ ලයිට් නිවුවා"; }, desc: function(d){ return "ඉලක්කය " + fmt(lightsMin(d)); } },
+    { key: "woke", title: function(d){ return "නියමිත වෙලාවට නැගිටියා"; }, desc: function(d){ return "ඉලක්කය " + fmt(wakeMin(d)); } },
+    { key: "move", title: function(d){ return "Move · ව්‍යායාම"; }, desc: function(d){ return "දහඩිය දාන්න · විනාඩි " + sessLen(d); } },
+    { key: "reflect", title: function(d){ return "Reflect · නිහඬ චින්තනය"; }, desc: function(d){ return "ධ්‍යානය, journal, අද ප්‍රමුඛතා 3 · විනාඩි " + sessLen(d); } },
+    { key: "grow", title: function(d){ return "Grow · අමාරුම විෂයය"; }, desc: function(d){ return "ෆෝන් එක නැතුව · විනාඩි " + sessLen(d); } }
+  ];
+
+  function $(id){ return document.getElementById(id); }
+  function pad(n){ return String(n).padStart(2, "0"); }
+  function todayStr(){ var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function dnum(s){ var p = s.split("-").map(Number); return Date.UTC(p[0], p[1] - 1, p[2]) / 86400000; }
+  function dayNow(){ return S.start ? dnum(todayStr()) - dnum(S.start) + 1 : 0; }
+  function wakeMin(d){ if (d >= 34) return 300; return 480 - 15 * (Math.floor((d - 1) / 3) + 1); }
+  function lightsMin(d){ return wakeMin(d) - 420; }
+  function sessLen(d){ return d <= 12 ? 5 : d <= 24 ? 10 : d <= 36 ? 15 : 20; }
+  function phaseOf(d){ return d <= 22 ? 0 : d <= 44 ? 1 : 2; }
+  function fmt(min){
+    min = ((min % 1440) + 1440) % 1440;
+    var h = Math.floor(min / 60), m = min % 60;
+    var h12 = h % 12; if (h12 === 0) h12 = 12;
+    return h12 + ":" + pad(m) + " " + (h >= 12 ? "PM" : "AM");
+  }
+  function dateOf(d){
+    if (!S.start) return "";
+    var t = new Date((dnum(S.start) + d - 1) * 86400000);
+    return t.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  }
+  function dayData(d){ return S.days[d] || {}; }
+  function done(d){ var x = dayData(d); return !!(x.woke && x.move && x.reflect && x.grow); }
+  function marks(d){ var x = dayData(d); return ["woke", "move", "reflect", "grow", "lights"].filter(function(k){ return x[k]; }).length; }
+  function doneCount(){ var n = 0; for (var d = 1; d <= TOTAL; d++) if (done(d)) n++; return n; }
+  function streaks(){
+    var now = dayNow(), n = Math.min(Math.max(now, 0), TOTAL), best = 0, run = 0, cur = 0, d;
+    for (d = 1; d <= n; d++){ if (done(d)){ run++; if (run > best) best = run; } else run = 0; }
+    d = n;
+    if (d >= 1 && !done(d) && now === n) d--;
+    while (d >= 1 && done(d)){ cur++; d--; }
+    return { cur: cur, best: best };
+  }
+  function normalize(o){
+    o = o || {};
+    var days = {};
+    if (o.days && typeof o.days === "object"){
+      Object.keys(o.days).forEach(function(k){
+        var v = o.days[k] || {};
+        days[k] = { lights: !!v.lights, woke: !!v.woke, move: !!v.move, reflect: !!v.reflect, grow: !!v.grow };
+      });
+    }
+    return { start: typeof o.start === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.start) ? o.start : null, days: days, why: typeof o.why === "string" ? o.why : "" };
+  }
+
+  /* persistence: private db document when available, browser storage as a mirror */
+  var ref = null, saving = false, dirty = false, saveTimer = null, loadTimer = null, statusState = "local";
+  function lsRead(){ try { var v = localStorage.getItem(LS); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function lsWrite(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
+  function setStatus(s){
+    statusState = s;
+    var t = { saved: "✓ සුරැකුණා", saving: "සුරකිමින්…", local: "මේ browser එකේ පමණක් සුරැකේ", error: "සුරැකීමට නොහැකි වුණා. මේ browser එකේ තබාගත්තා.", checking: "සම්බන්ධ වෙමින්…", slow: "සර්වරයට තවම ළඟා වෙන්න බැරි වුණා. දත්ත පරණ විය හැක." }[s] || "";
+    $("status").textContent = t;
+  }
+  function persist(){
+    lsWrite();
+    if (!ref){ setStatus("local"); return; }
+    setStatus("saving");
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 400);
+  }
+  function flush(){
+    if (saving || !dirty) return;
+    saving = true; dirty = false;
+    ref.set(JSON.parse(JSON.stringify(S))).then(function(){ setStatus("saved"); }, function(){ setStatus("error"); }).then(function(){
+      saving = false;
+      if (dirty) flush();
+    });
+  }
+
+  /* rendering */
+  function checkSvg(){ return '<svg viewBox="0 0 16 16" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>'; }
+
+  function renderHero(){
+    var now = dayNow(), el = $("hero"), html;
+    if (!S.start){
+      html = '<div class="hero-body"><div class="eyebrow">5 AM Club · The 20/20/20 formula</div><h1>දින 66 ගමන</h1>' +
+        '<div class="phase"><span>උදේ 5ට නැගිටින පුරුද්ද ටිකෙන් ටික හදාගන්න. පටන් ගන්න දවස පහළින් තෝරන්න.</span></div></div>' +
+        '<div class="horizon" style="--p:0"><div class="sun"></div><div class="ground"></div></div>';
+    } else if (now < 1){
+      html = '<div class="hero-body"><div class="eyebrow">5 AM Club</div><h1>තවම පටන් අරන් නෑ</h1>' +
+        '<div class="phase"><span>ඔයාගේ දවස 1 ' + dateOf(1) + '. ඒ වෙනකම් සූදානම් වෙන්න.</span></div></div>' +
+        '<div class="horizon" style="--p:0"><div class="sun"></div><div class="ground"></div></div>';
+    } else if (now > TOTAL){
+      html = '<div class="hero-body"><div class="eyebrow">දින 66 සම්පූර්ණයි</div><h1>සුබ පැතුම්!</h1>' +
+        '<div class="phase"><b>සම්පූර්ණ කළ දවස් ' + doneCount() + ' / ' + TOTAL + '</b><span>ඔයා දැන් Integration අවසන්. නැගිටින එක දිගටම කරගෙන යන්න.</span></div></div>' +
+        '<div class="horizon" style="--p:1"><div class="sun"></div><div class="ground"></div></div>';
+    } else {
+      var p = PHASES[phaseOf(now)];
+      html = '<div class="hero-body"><div class="eyebrow">' + p.en + ' · ' + p.range + '</div>' +
+        '<h1><span class="num">දවස ' + now + '</span><small>/ ' + TOTAL + '</small></h1>' +
+        '<div class="phase"><b>' + p.name + '</b><span>' + p.hint + '</span></div></div>' +
+        '<div class="horizon" style="--p:' + ((now - 1) / (TOTAL - 1)).toFixed(3) + '"><div class="sun"></div><div class="ground"></div></div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function renderToday(){
+    var now = dayNow(), el = $("today");
+    var d = sel || 1;
+    var editable = !!S.start && d <= now && now >= 1;
+    var x = dayData(d);
+    var html = '<div class="card-head"><div><h2>දවස ' + d + (S.start ? ' <span class="sub" style="font-weight:400">· ' + dateOf(d) + '</span>' : '') + '</h2>' +
+      '<div class="sub">' + PHASES[phaseOf(d)].name + ' · ' + PHASES[phaseOf(d)].en + '</div></div>' +
+      '<div class="nav"><button class="btn" data-nav="-1" aria-label="කලින් දවස"' + (d <= 1 ? ' disabled' : '') + '>←</button>' +
+      ((S.start && now >= 1 && now <= TOTAL && d !== now) ? '<button class="btn" data-nav="today">අද</button>' : '') +
+      '<button class="btn" data-nav="1" aria-label="ඊළඟ දවස"' + (d >= TOTAL ? ' disabled' : '') + '>→</button></div></div>';
+
+    var tonight = fmt(lightsMin(Math.min(d + 1, TOTAL)));
+    html += '<div class="times"><div class="time"><div class="k">නැගිටින්න</div><div class="v num">' + fmt(wakeMin(d)) + '</div></div>' +
+      '<div class="time"><div class="k">අද රෑ ලයිට් නිවන්න</div><div class="v num">' + tonight + '</div></div></div>';
+    html += '<div class="session">උදේ සැසිය: <b>විනාඩි ' + sessLen(d) * 3 + '</b> (Move ' + sessLen(d) + ' · Reflect ' + sessLen(d) + ' · Grow ' + sessLen(d) + ')</div>';
+
+    if (!S.start){
+      html += '<div class="startbox"><label for="startdate">පටන් ගන්න දවස</label><div class="row"><input type="date" id="startdate" value="' + todayStr() + '"><button class="btn btn-primary" data-act="start">මේ දවසෙන් පටන් ගන්න</button></div>' +
+        '<div class="tag">හෙට උදේ සිට පටන් ගන්න කැමති නම් හෙට දවස තෝරන්න.</div></div>';
+    }
+
+    html += '<div class="checks" role="group" aria-label="දවසේ ඉලක්ක">';
+    ITEMS.forEach(function(it){
+      var on = !!x[it.key];
+      html += '<button class="check" role="checkbox" aria-checked="' + on + '" data-key="' + it.key + '"' + (editable ? '' : ' disabled') + '>' +
+        '<span class="box">' + checkSvg() + '</span><span class="txt"><div class="t">' + it.title(d) + '</div><div class="d">' + it.desc(d) + '</div></span></button>';
+    });
+    html += '</div>';
+    if (S.start && now >= 1 && d > now) html += '<div class="note">මේ දවස තවම පැමිණ නෑ. එදින ඔයාට tick කරන්න පුළුවන්.</div>';
+    else if (S.start && now < 1) html += '<div class="note">ඔයාගේ plan එක ' + dateOf(1) + ' සිට පටන් ගන්නවා.</div>';
+    else if (editable) html += '<div class="note">නැගිටීම, Move, Reflect, Grow හතරම tick කළොත් ඒ දවස streak එකට ගණන් ගන්නවා. ලයිට් නිවීම වෙනම සටහන් වේ.</div>';
+    el.innerHTML = html;
+  }
+
+  function renderStats(){
+    var s = streaks();
+    $("stats").innerHTML =
+      '<div class="stat"><div class="v num">' + s.cur + '</div><div class="k">දැන් streak</div></div>' +
+      '<div class="stat"><div class="v num">' + s.best + '</div><div class="k">හොඳම streak</div></div>' +
+      '<div class="stat"><div class="v num">' + doneCount() + '<span class="sub" style="font-size:14px"> / ' + TOTAL + '</span></div><div class="k">සම්පූර්ණ දවස්</div></div>';
+  }
+
+  function renderGrid(){
+    var now = dayNow(), html = "";
+    for (var p = 0; p < 3; p++){
+      html += '<div class="phase-block"><div class="phase-label">' + PHASES[p].name + ' <span>' + PHASES[p].range + '</span></div><div class="cells">';
+      for (var i = 1; i <= 22; i++){
+        var d = p * 22 + i, cls = "cell";
+        if (S.start && d <= now){
+          if (done(d)) cls += " full";
+          else if (marks(d) > 0) cls += " part";
+          else if (d < now) cls += " miss";
+        } else if (S.start && now >= 1) cls += " future";
+        if (S.start && d === now) cls += " today";
+        if (d === sel) cls += " sel";
+        html += '<button class="' + cls + '" data-day="' + d + '" aria-label="දවස ' + d + '"' + (d === sel ? ' aria-current="true"' : '') + '>' + d + '</button>';
+      }
+      html += '</div></div>';
+    }
+    $("grid").innerHTML = html;
+  }
+
+  var ROWS = [[1,3],[4,6],[7,9],[10,12],[13,15],[16,18],[19,21],[22,24],[25,27],[28,30],[31,33],[34,36],[37,66]];
+  function renderTable(){
+    var d = sel || 1;
+    var html = '<thead><tr><th>දවස්</th><th>නැගිටින්න</th><th>ලයිට් නිවන්න</th><th>උදේ සැසිය</th></tr></thead><tbody>';
+    ROWS.forEach(function(r){
+      var on = d >= r[0] && d <= r[1];
+      html += '<tr' + (on ? ' class="now"' : '') + '><td class="num">' + r[0] + '–' + r[1] + '</td><td class="num">' + fmt(wakeMin(r[0])) + '</td><td class="num">' + fmt(lightsMin(r[0])) + '</td><td class="num">විනාඩි ' + sessLen(r[0]) * 3 + '</td></tr>';
+    });
+    $("table").innerHTML = html + '</tbody>';
+  }
+
+  function renderSettings(){
+    var html = '<div><label class="sub" for="newstart">ආරම්භක දවස වෙනස් කරන්න</label><div class="row" style="margin-top:6px"><input type="date" id="newstart" value="' + (S.start || todayStr()) + '"><button class="btn" data-act="setstart">සුරකින්න</button></div></div>';
+    if (confirmReset){
+      html += '<div class="row"><span class="sub">සියලු ටික් සහ "ඇයි?" මැකෙනවා.</span><button class="btn btn-danger" data-act="reset-yes">ඔව්, සියල්ල මකන්න</button><button class="btn" data-act="reset-no">අවලංගුයි</button></div>';
+    } else {
+      html += '<div><button class="btn btn-danger" data-act="reset">මුල සිට නැවත පටන් ගන්න</button></div>';
+    }
+    $("settings").innerHTML = html;
+  }
+
+  function render(){
+    var now = dayNow();
+    if (sel === null) sel = now >= 1 ? Math.min(now, TOTAL) : 1;
+    renderHero(); renderToday(); renderStats(); renderGrid(); renderTable(); renderSettings();
+    var w = $("why");
+    if (document.activeElement !== w) w.value = S.why;
+  }
+
+  /* events */
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("button");
+    if (!t) return;
+    if (t.dataset.day){ sel = +t.dataset.day; render(); return; }
+    if (t.dataset.nav){
+      var now = dayNow();
+      if (t.dataset.nav === "today") sel = Math.min(Math.max(now, 1), TOTAL);
+      else sel = Math.min(Math.max((sel || 1) + (+t.dataset.nav), 1), TOTAL);
+      render(); return;
+    }
+    if (t.dataset.key){
+      var d = sel, now2 = dayNow();
+      if (!S.start || d > now2 || now2 < 1) return;
+      var cur = Object.assign({ lights: false, woke: false, move: false, reflect: false, grow: false }, S.days[d]);
+      cur[t.dataset.key] = !cur[t.dataset.key];
+      S.days[d] = cur;
+      persist(); render(); return;
+    }
+    var a = t.dataset.act;
+    if (a === "start"){
+      var v = $("startdate").value;
+      if (!v) return;
+      S.start = v; sel = null; persist(); render();
+    } else if (a === "setstart"){
+      var v2 = $("newstart").value;
+      if (!v2) return;
+      S.start = v2; sel = null; persist(); render();
+    } else if (a === "reset"){ confirmReset = true; renderSettings(); }
+    else if (a === "reset-no"){ confirmReset = false; renderSettings(); }
+    else if (a === "reset-yes"){ confirmReset = false; S = { start: null, days: {}, why: "" }; sel = null; persist(); render(); }
+  });
+  $("why").addEventListener("input", function(){ S.why = $("why").value; persist(); });
+
+  /* start: show local data at once, then connect the private store */
+  S = normalize(lsRead());
+  render();
+  setStatus("local");
+
+  (async function(){
+    try {
+      if (!window.claude || !window.claude.use) return;
+      var results = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+      var dbn = results[0], user = results[1];
+      if (!dbn || !user) return;
+      var uid = await user.id();
+      if (!uid) return;
+      ref = dbn.doc("data/users/" + uid + "/tracker");
+      setStatus("checking");
+      loadTimer = setTimeout(function(){ setStatus("slow"); }, 10000);
+      ref.onSnapshot(function(snap){
+        if (snap.metadata.hasPendingWrites || saving || dirty) return;
+        if (!snap.metadata.fromCache) clearTimeout(loadTimer);
+        if (snap.exists){
+          S = normalize(snap.data());
+          lsWrite();
+          render();
+          setStatus(snap.metadata.fromCache ? "checking" : "saved");
+        } else if (!snap.metadata.fromCache){
+          if (S.start || S.why) persist(); else setStatus("saved");
+        }
+      }, function(){ clearTimeout(loadTimer); setStatus("error"); });
+    } catch (err) { setStatus("local"); }
+  })();
+})();
+</script>
+
+</body>
+</html>
